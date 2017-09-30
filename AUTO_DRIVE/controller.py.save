@@ -1,0 +1,79 @@
+from Connection import *
+from Robot import *
+import threading
+
+global stop
+stop = False
+
+connection = Connection()
+robot = Robot(connection)
+
+
+
+def auto():
+    autoThread = threading.Thread(target= robot.execute())
+    auto.start()
+def stopAuto():
+    global stop
+    stop = True
+    
+
+#aanmaken in robot.py
+#import sys
+#def stopExecute(self):
+#    sys.exit()
+
+def forward():
+    robot.continueDrivingForward(1)    
+       
+def backward():
+    robot.continueDrivingBack(1)   
+            
+def stop():
+    robot.pauseMotors()
+   
+def turnLeft():
+    robot.turnLeft()
+   
+def turnRight():
+    robot.turnRight()
+    
+def turnCameraLeft():
+    robot.turnCameraLeft()
+   
+def turnCameraRight():
+    robot.turnCameraRight()
+    
+
+while 1:
+    data = connection.conn.recv(1024)
+    #print "data received"
+    
+    if data:
+        print "Executeding command: " + str(data)
+        
+        if str(data)=="auto":
+            auto()
+        elif str(data)=="autoStop":
+            stopAuto()
+        elif str(data)=="forward":
+            forward()
+        elif str(data)=="backward":
+            backward()
+        elif str(data)=="stop":
+            stop()
+        elif str(data)=="turnLeft":
+            turnLeft()
+        elif str(data)=="turnRight":
+            turnRight()
+        elif str(data)=="turnCameraLeft":
+            turnCameraLeft()
+        elif str(data)=="turnCameraRight":
+            turnCameraRight()
+        
+        else:
+            data = "FAILED"
+        print "Executed command: " + str(data)
+        #answer = "Executed command: " + str(data)
+        #connection.conn.sendall(answer)
+connection.conn.close()

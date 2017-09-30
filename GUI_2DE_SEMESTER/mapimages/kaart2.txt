@@ -1,0 +1,21 @@
+# sqmdjfhmqskdjf
+
+4 4
+
+
+
+4N 3N 2E 4E
+
+1W 0N 1N 3E
+
+1W 1E 2N 4S
+3W 1S 1S 4E
+1Eimages/red_triangle.jpeg
+
+3Nimages/yellow_circle.jpeg
+
+9Eimages/green_star.jpeg
+
+12Simages/red_circle.jpeg
+
+14Simages/blue_circle.jpeg

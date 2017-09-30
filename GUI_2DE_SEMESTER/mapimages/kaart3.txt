@@ -1,0 +1,11 @@
+# voorbeeld wereld
+
+4 3
+
+4W 2E 2E 3E
+3N 1N 1N 3S
+4S 4S 3W 4E
+
+0Wimages/green_triangle.jpeg
+8Simages/blue_circle.jpeg
+11Eimages/red_star.jpeg

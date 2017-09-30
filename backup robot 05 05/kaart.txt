@@ -1,0 +1,24 @@
+# final demo track
+
+6 6
+
+3N 2E 1N 2E 3E 3W
+2N 4N 6N 3N 1S 3E
+4S 2N 1W 1S 2E 1E
+4W 0N 3S 4S 4N 2N
+3N 1S 1N 2E 0N 3S
+3W 2E 1S 4E 4S 3N
+
+# tags on the walls
+
+0Nimages/green_star.png
+3Nimages/red_triangle.png
+7Wimages/purple_square.png
+9Nimages/green_circle.png
+15Simages/red_circle.png
+23Eimages/blue_circle.png
+26Nimages/red_star.png
+27Nimages/purple_circle.png
+29Simages/red_square.png
+31Simages/blue_star.png
+34Eimages/blue_triangle.png

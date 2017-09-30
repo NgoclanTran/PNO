@@ -1,0 +1,11 @@
+
+data = [27.9146304131 35.4856828809 13.8846349418 34.6705145538 35.5339560986 35.5346772671 27.8443164825 33.7647286287 14.03168571 34.6093279123 34.8679344356 34.5870782245 34.0864460652 24.1541873217 35.5780167213 15.5253158569 33.1665401459 16.0072367191 34.5278584063 ]
+x = 1:19
+y(1:19)=35
+
+plot(x,data,'o',x,y)
+title('Gemeten waarden HC SR04 sensor')
+xlabel('waarneming nr.') % x-axis label
+ylabel('afstand (cm)') % y-axis label
+ylim([0,40])
+legend('gemeten waarden','gezochte waarden','Location','southeast')

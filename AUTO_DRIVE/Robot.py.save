@@ -1,0 +1,578 @@
+#!/usr/bin/env python
+
+# Initial Date: Oktober 13, 2014
+# Last Updated: Oktober 22, 2014
+# Team Ijzer
+
+# A file containing the robot class and some additional helper classes.
+
+#import BrickPi.py file to use BrickPi operations
+from BrickPi import *
+
+# Import time module to keep track of time
+import time
+
+# Import RPi.GPIO module to access GPIO pins
+import RPi.GPIO as GPIO
+
+import numpy as np
+from Camera import *
+
+class Sensor:
+    'Sensor class, representing a sensor attached to one of the BrickPi ports.'
+
+    def __init__(self,port=PORT_1):
+        self.port = port
+
+    def getPort(self):
+        return self.port
+
+    def getValue(self):
+        return BrickPi.Sensor[self.port]
+
+class Motor:
+    'Motor class, representing a motor attached to one of the BrickPi ports.'
+
+    def __init__(self,port=PORT_A):
+
+        self.port = port
+        self.setPower(0)
+
+    def getPort(self):
+        return self.port
+
+    def getPosition(self):
+        encoderValue = int(BrickPi.Encoder[self.getPort()])
+        result = (encoderValue % 720)/2.0
+        return result
+    
+    def getPower(self):
+        return self.power
+
+    def setPower(self,power):
+        self.power = power
+        BrickPi.MotorSpeed[self.port] = self.power
+
+    def moveTo(self,degrees):
+        motorRotateDegree([30],[degrees],[self.getPort()])
+
+## in this case, function calls have to be made absolute and an initial value of 0 for the position of the motor is required
+##    def moveTo(self,target):
+##        # version to move the motorCHO_GPIO = 17
+    gl using a PID algorithm with the current PIDSettings
+##    
+##        distanceIntegratedOverTime = 0 # I bit of PID.
+##        currentTime = time.time()
+##        currentPosition = self.getPosition()
+##        
+##        while True:
+##           
+##            previousTime = currentTime
+##            currentTime = time.time()
+##            previousPosition = currentPosition
+##            currentPosition = self.getPosition()
+##            
+##            delta = (target - currentPosition)
+##            distanceIntegratedOverTime += delta * (currentTime - previousTime)
+##            speed = self.getAverageSpeed(currentTime,currentPosition,previousTime,previousPosition)
+##
+##            print 'curPos:', currentPosition
+##            print 'delta:', delta
+##            print 'speed:', speed
+##            
+##            if (abs(delta) <= 4) and (abs(speed) < 10.0):
+##                break
+##
+##            power = 0.9*delta - 0.23*speed + (0.05/20.0)*distanceIntegratedOverTime
+##            power = int(power)
+##            
+##            print 'power', power
+##
+##            self.setPower(power)
+##            BrickPiUpdateValues() 
+##
+##        self.setPower(0)
+            
+            
+    def getAverageSpeed(self,currentTime,currentPosition,previousTime,previousPosition):
+        return float(currentPosition - previousPosition) / float(currentTime - previousTime)
+        
+
+class Robot:
+    'A class of Robot vehicles that automatically follow a path parallel to a wall.'
+
+    global ECHO_GPIO 
+    ECHO_GPIO = 17
+    global TRIG_GPIO 
+    TRIG_GPIO = 4
+    global TRIG_DURATION 		# Trigger duration
+    TRIG_DURATION = 0.0001
+    global INTTIMEOUT 		        # Timeout on echo signal
+    INTTIMEOUT = 2100
+    global V_SND 			# Speed of sound in m/s
+    V_SND = 340.29
+
+    def __init__(self, Connection=None, wall=None, cameraPosition=0):
+        
+        self.wall = wall
+        self.camera = Camera(self,cameraPosition)
+	self.connection = Connection
+	self.stop = False
+
+        # Set the sensors used
+        self.SENSOR_ULTRASONIC =Sensor(PORT_1)
+        self.SENSOR_TOUCH = Sensor(PORT_4)
+	self.SENSOR_TOUCH2 = Sensor(PORT_2)
+
+        # Set the motors used
+        self.MOTOR_LEFT = Motor(PORT_A)
+        self.MOTOR_RIGHT = Motor(PORT_D)
+        self.MOTOR_ROOF = Motor(PORT_B)
+
+        # setup
+        self.setupBrickPi()
+        self.setupGPIO()
+
+    def setupBrickPi(self):
+
+        BrickPiSetup()  # setup the serial port for communication
+        
+        BrickPi.SensorType[self.SENSOR_ULTRASONIC.getPort()] = TYPE_SENSOR_ULTRASONIC_CONT    #Set the type of sensor
+        BrickPi.SensorType[self.SENSOR_TOUCH.getPort()] = TYPE_SENSOR_TOUCH                   #Set the type of sensor
+	BrickPi.SensorType[self.SENSOR_TOUCH2.getPort()] = TYPE_SENSOR_TOUCH
+
+        BrickPi.MotorEnable[self.MOTOR_LEFT.getPort()] = 1                                    #Enable the Left Motor
+        BrickPi.MotorEnable[self.MOTOR_RIGHT.getPort()] = 1                                   #Enable the Right Motor
+        BrickPi.MotorEnable[self.MOTOR_ROOF.getPort()] = 1                                    #Enable the Roof Motor
+
+        BrickPiSetupSensors()                                                                 #Send the properties of sensors to BrickPi
+
+    def setupGPIO(self):
+
+        GPIO.cleanup()
+        
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(ECHO_GPIO, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(TRIG_GPIO, GPIO.OUT)
+        GPIO.output(TRIG_GPIO, False)
+
+        # Wait for 2 seconds for the ultrasonics to settle
+        time.sleep(2)
+
+    def getConnection(self):
+        return self.connection
+        
+    def turnCameraFront(self):
+        print 'Reporting: turnCameraFront'
+        self.turnCamera(0)
+        self.camera.setPosition(0)
+
+    def turnCameraLeft(self):
+        print 'Reporting: turnCameraLeft'
+	if self.connection:
+	    self.connection.sendMessage(' turn camera left')
+        self.turnCamera(-77)
+        self.camera.setPosition(-77)
+        
+    def turnCameraRight(self):
+        print 'Reporting: turnCameraRight'
+	if self.connection:
+	    self.connection.sendMessage(' turn camera right ')
+        self.turnCamera(82)
+        self.camera.setPosition(82)
+
+    def turnCamera(self,newCameraPosition):
+        cameraPosition = self.camera.getPosition()
+        degrees = newCameraPosition - cameraPosition
+        self.MOTOR_ROOF.moveTo(degrees)
+        #self.MOTOR_ROOF.moveTo(newCameraPosition)
+
+    def turnLeft(self):
+	if self.connection:
+	    self.connection.sendMessage( 'turn left ')
+        self.adjustLeft(2.5)                              # TESTEN!!!
+
+    def turnRight(self):
+	if self.connection:
+	    self.connection.sendMessage(' turn right ')
+        self.adjustRight(2)                             # TESTEN!!!
+        
+    def turn(self):
+        # This function makes the robot turn
+
+        print 'Reporting: turn!'
+
+	if self.connection:
+	    self.connection.sendMessage(' turn ')        
+
+        if self.camera.detectRedWall():
+            return 1
+
+        if (self.wall == 'left'):
+            self.turnRight()
+            self.turnCameraLeft()
+        else:
+            if (self.wall == None):
+                self.wall = 'right'
+            self.turnLeft()
+            self.turnCameraRight()
+
+        return 0 # turned, but no image detected
+   
+    def cornerTurn(self):
+
+        print 'Reporting: cornerTurn'
+
+	if self.connection:
+	    self.connection.sendMessage(' turn around the corner ')
+
+	self.continueDrivingForward(1)
+
+	if (self.wall == "left"):
+	    self.turnLeft()
+	elif (self.wall == "right"):
+            self.turnRight()
+        else:
+            return
+
+        self.continueDrivingForward(2)
+
+    def pauseMotors(self):
+        
+        self.MOTOR_LEFT.setPower(0)
+        self.MOTOR_RIGHT.setPower(0)
+        BrickPiUpdateValues()
+    
+    def continueDrivingForward(self,t):
+
+	if self.connection:
+	    self.connection.sendMessage(' drive forward ')
+
+        self.MOTOR_LEFT.setPower(-100)    #Set the speed of Left Motor (-255 to 255)
+        self.MOTOR_RIGHT.setPower(-125)   #Set the speed of Right Motor (-255 to 255)
+
+        ot = time.time()
+        while(time.time() - ot < t):     # running while loop for t seconds
+            BrickPiUpdateValues()               # Ask BrickPi to update values for sensors/motors
+            time.sleep(.1)                      # sleep for 100 ms
+
+        self.pauseMotors()
+ 
+            
+    def continueDrivingBack(self,t):
+
+	if self.connection:
+	    self.connection.sendMessage(' drive backwards ')
+
+        self.MOTOR_LEFT.setPower(200)    #Set the speed of Left Motor (-255 to 255)
+        self.MOTOR_RIGHT.setPower(200)   #Set the speed of Right Motor (-255 to 255)
+
+        ot = time.time()
+        while(time.time() - ot < t):     # running while loop for time seconds
+            BrickPiUpdateValues()               # Ask BrickPi to update values for sensors/motors
+            time.sleep(.1)                      # sleep for 100 ms
+
+        self.pauseMotors()
+                
+    def checkTouchSensor(self):
+        result = BrickPiUpdateValues()      # Ask BrickPi to update values for sensors/motors 
+        if not result:
+            return (self.SENSOR_TOUCH.getValue() or self.SENSOR_TOUCH2.getValue())
+        else:
+            return self.checkTouchSensor()
+
+# TESTEN!!!
+
+    def checkDistanceLeft(self):
+        dist = []
+        i = 0
+        while i < 30:
+            result = BrickPiUpdateValues()  # Ask BrickPi to update values for sensors/motors 
+            if not result :
+                dist.append(self.SENSOR_ULTRASONIC.getValue()) # BrickPi.Sensor[PORT] stores the value obtained from sensor
+                i += 1
+            time.sleep(.02) # sleep for 20 ms
+        a = np.array(dist)
+        result = np.median(a)
+        print 'distanceLeft:', result
+	if self.connection:
+	    self.connection.sendMessage('distance left: '+str(result))
+        return result
+
+    def checkDistanceRight(self):
+        dist = []
+        i = 0
+        while i < 30:
+            
+            # Trigger trig_gpio for trig_duration
+            GPIO.output( TRIG_GPIO, True )
+            time.sleep( TRIG_DURATION )
+            GPIO.output( TRIG_GPIO, False )
+
+            # Wait for the echo signal (or timeout)
+            countdown_high = INTTIMEOUT
+            while ( GPIO.input( ECHO_GPIO ) == 0 and countdown_high > 0 ):
+                countdown_high -= 1
+
+            # If we've gotten a signal
+            if countdown_high > 0:
+                echo_start = time.time()
+
+                countdown_low = INTTIMEOUT
+                while( GPIO.input( ECHO_GPIO ) == 1 and countdown_low > 0 ):
+                    countdown_low -= 1
+                echo_end = time.time()
+
+                echo_duration = echo_end - echo_start
+            
+            # Display the distance, unless there was a timeout on 
+            # the echo signal
+            if countdown_high > 0 and countdown_low > 0:
+                # echo_duration is in seconds, so multiply by speed
+                # of sound.  Divide by 2 because of rounttrip and 
+                # multiply by 100 to get cm instead of m.
+                distance = echo_duration * V_SND * 100 / 2
+                dist.append(distance)
+                i += 1
+                
+        a = np.array(dist)
+        result = np.median(a)
+        print 'distanceRight:', result
+	if self.connection:
+	    self.connection.sendMessage('distance right:'+str(result))
+        return result
+
+    def alignLeft(self,minDistance):
+        print "Reporting: alignLeft"
+
+        if self.connection:
+	    self.connection.sendMessage('align left')
+
+        self.turnCameraLeft()
+        self.wall = 'left'
+        
+        self.adjustRight()
+        
+        while True:
+            distance = self.checkDistanceLeft()
+            if distance <= minDistance:
+                minDistance = distance
+                self.adjustRight()
+		
+            else:
+                self.adjustLeft() # since we've gone one too far
+                break
+
+    def alignRight(self,minDistance):
+        print "Reporting: alignRight"
+
+	if self.connection:
+	    self.connection.sendMessage('align right')
+
+        self.turnCameraRight()
+        self.wall = 'right'
+
+        self.adjustLeft()
+
+        while True:
+            distance = self.checkDistanceRight()
+            if distance <= minDistance:
+                minDistance = distance
+                self.adjustLeft()
+            else:
+                self.adjustRight() # since we've gone one too far
+                break
+
+    def adjustLeft(self,t=0.5): # make the robot turn a little to the left
+        print "Reporting: adjustLeft"
+        self.MOTOR_LEFT.setPower(0)
+        self.MOTOR_RIGHT.setPower(-100)
+        ot = time.time()
+        while(time.time() - ot < t):                  # TESTEN!!! 
+            BrickPiUpdateValues()       
+            time.sleep(.1)
+
+        self.pauseMotors()
+
+    def adjustRight(self,t=0.5): # make the robot turn a little to the right
+        print "Reporting: adjustRight"
+        self.MOTOR_LEFT.setPower(-100)    
+        self.MOTOR_RIGHT.setPower(0)   
+        ot = time.time()
+        while(time.time() - ot < t):                  # TESTEN!!!  
+            BrickPiUpdateValues()       
+            time.sleep(.1)
+
+        self.pauseMotors()
+
+    def trackLeft(self):
+        print 'Reporting: trackLeft'
+
+	if self.connection:
+	    self.connection.sendMessage(' tracking left wall ')
+	distance = 0
+
+        while True:
+            if self.checkStop():
+		print "checkstop"
+                return 0
+            
+            if self.camera.detectRedWall():
+                return 1
+            
+            collision = self.checkTouchSensor()
+            if collision:
+		self.continueDrivingBack(1)
+                result = self.turn()
+                if result:
+                    return 1
+
+            distanceLeft = self.checkDistanceLeft()
+
+            if (distanceLeft < 25):                     # TESTEN!!!
+
+                distance = 0
+                
+                self.adjustRight()
+		self.continueDrivingForward(0.5)
+		self.adjustLeft()
+		
+            elif (distanceLeft > 30 and distanceLeft < 100 and distanceLeft >= distance):
+                
+		distance = distanceLeft
+                self.adjustLeft()
+		self.continueDrivingForward(0.5)
+		self.adjustRight()
+		
+	    elif (distanceLeft >= 100):
+                
+		self.cornerTurn()
+		self.wall = None
+
+		return 0
+	    
+            else:
+
+                distance = 0
+                
+                self.continueDrivingForward(0.5)
+
+    def trackRight(self):
+        print 'Reporting: trackRight'
+
+	if self.connection:
+	    self.connection.sendMessage(' tracking right wall ')
+
+	distance = 0
+
+        while True:
+            if self.checkStop():
+		print "checkstop"
+                return 0
+            
+            if self.camera.detectRedWall():
+                return 1
+
+            collision = self.checkTouchSensor()
+            if collision:
+		self.continueDrivingBack(1)
+                result = self.turn()
+                if result:
+                    return 1
+            
+            distanceRight = self.checkDistanceRight()
+            
+            if (distanceRight < 25):
+
+                distance = 0
+                
+                self.adjustLeft()
+		self.continueDrivingForward(0.5)
+		self.adjustRight()
+		
+            elif (distanceRight > 30 and distanceRight < 100 and distanceRight >= distance):
+                
+		distance = distanceRight
+                self.adjustRight()
+		self.continueDrivingForward(0.5)
+		self.adjustLeft()
+		
+	    elif (distanceRight > 100):
+                
+		self.cornerTurn()
+		self.wall = None
+		
+		return 0
+	    
+            else:
+
+                distance = 0
+                
+                self.continueDrivingForward(0.5)
+
+    def checkStop(self):
+	self.connection.getStop()
+
+ 	#return False
+	#print"CHECKSTOP"
+        #if (self.stop):
+	#    print "fristIF"
+        #    return True
+        #self.connection.sendMessage("check stop")
+        #print "sendmessage stop"
+	#message = self.connection.getReceived()
+	#print "receive messege stop"
+        #if (message == "YesStop"):
+        #    self.stop = True
+        #    return True
+        #else:
+        #    return False
+    
+    def execute(self):
+
+        while True:
+            
+            print "Reporting: in while loop execute()"
+
+            if self.checkStop():
+                self.turnCameraFront()
+                return
+            
+            collision = self.checkTouchSensor()
+            if collision:
+                self.continueDrivingBack(1)
+                result = self.turn()
+                if result:
+                    break
+        
+            distanceLeft = self.checkDistanceLeft()
+            distanceRight = self.checkDistanceRight()
+        
+            if (distanceLeft < 30):
+            
+                print 'Reporting: distanceLeft < 30'
+
+                self.alignLeft(distanceLeft)
+                result = self.trackLeft()
+                if result:
+                    break
+
+            elif (distanceRight < 30):
+
+                print 'Reporting: distanceRight < 30'
+
+                self.alignRight(distanceRight)
+                result = self.trackRight()
+                if result:
+                    break
+            
+            else:
+            
+                print 'Reporting: noDistance < 30; continueDrivingForward'
+
+                self.continueDrivingForward(1)
+
+        print 'Reporting: Red Wall Detected; Stopped'
+        
+##
+

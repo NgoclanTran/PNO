@@ -1,0 +1,24 @@
+# Demo 2 Semester 2
+
+5 6
+
+1E 3N 6E 1N 3E
+1E 2N 4N 1W 3S
+3S 2N 1W 1S 4E
+3N 0N 3S 3N 1N
+2N 2N 3N 0N 0N
+3W 3S 1W 0N 0N
+
+
+# tags on the walls
+
+4Nimages/red_circle.png
+7Nimages/blue_circle.png
+9Simages/green_square.png
+11Wimages/green_star.png
+14Eimages/blue_star.png
+17Simages/red_triangle.png
+20Eimages/purple_square.png
+25Simages/red_star.png
+26Eimages/purple_triangle.png
+

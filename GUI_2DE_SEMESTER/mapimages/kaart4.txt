@@ -1,0 +1,30 @@
+#lkdfjdlskfj
+
+4 4
+
+
+4N 3N 2E 4E
+
+1W 0N 1N 3E
+
+1W 1W 2N 4S
+
+3W 1S 1S 4E
+
+
+0Eimages/red_star.jpeg
+
+1Nimages/yellow_square.jpeg
+
+3Nimages/yellow_circle.jpeg
+
+6Nimages/green_triangle.jpeg
+
+9Eimages/blue_triangle.jpeg
+11Simages/green_circle.jpeg
+
+12Simages/purple_star.jpeg
+
+14Simages/blue_circle.jpeg
+
+15Eimages/purple_square.jpeg

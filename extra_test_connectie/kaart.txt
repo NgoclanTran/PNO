@@ -1,0 +1,11 @@
+# final demo track
+
+6 6
+
+3N 2E 1N 3E 3W 0N
+2S 4N 2S 3W 3E 1W
+1W 0N 1S 2E 1E 3W
+2S 1W 2E 1N 0N 3E
+2S 3W 3E 2S 2S 2S
+3W 2E 3S 3W 1S 3S
+

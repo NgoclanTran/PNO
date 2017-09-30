@@ -1,0 +1,21 @@
+# wereld voor tussentijdse demo
+
+5 5
+
+4N 4N 3N 1N 3E
+2N 3W 3S 2N 2N
+1W 2E 2E 1S 1E
+2N 4W 2E 1N 3S
+3W 2E 2E 3S 3N
+
+0Nimages/red_square.png
+1Wimages/blue_square.png
+2Nimages/purple_star.png
+14Eimages/green_triangle.png
+8Wimages/blue_triangle.png
+10Wimages/red_circle.png
+16Wimages/purple_square.png
+18Nimages/green_circle.png
+20Wimages/purple_triangle.png
+22Simages/red_star.png
+
